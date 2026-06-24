@@ -1,8 +1,12 @@
 from flask import Flask, request
+import requests
+import os
 
 app = Flask(__name__)
 
 VERIFY_TOKEN = "ffbot_verify"
+PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
+
 
 @app.route("/")
 def home():
@@ -25,9 +29,32 @@ def verify():
 def webhook():
     data = request.json
 
-    print(data)
+    if data.get("object") == "page":
+        for entry in data.get("entry", []):
+            for event in entry.get("messaging", []):
+
+                sender_id = event["sender"]["id"]
+
+                if "message" in event:
+                    text = event["message"].get("text", "")
+
+                    send_message(
+                        sender_id,
+                        f"Bạn vừa gửi: {text}"
+                    )
 
     return "EVENT_RECEIVED", 200
+
+
+def send_message(recipient_id, message_text):
+    url = f"https://graph.facebook.com/v23.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
+
+    payload = {
+        "recipient": {"id": recipient_id},
+        "message": {"text": message_text}
+    }
+
+    requests.post(url, json=payload)
 
 
 if __name__ == "__main__":
