@@ -22,48 +22,39 @@ def verify():
     if mode == "subscribe" and token == VERIFY_TOKEN:
         return challenge, 200
 
-    return "Forbidden", 403
+    return "Verification failed", 403
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json()
+    data = request.json
 
-    print("DATA RECEIVED:", data)
+    print("================================")
+    print("FACEBOOK EVENT RECEIVED")
+    print(data)
+    print("================================")
 
     if data.get("object") == "page":
-
         for entry in data.get("entry", []):
-
             for event in entry.get("messaging", []):
 
-                if "message" in event and "text" in event["message"]:
+                sender_id = event["sender"]["id"]
 
-                    sender_id = event["sender"]["id"]
-                    text = event["message"]["text"]
+                if "message" in event:
+                    text = event["message"].get("text", "")
 
-                    print(f"User: {text}")
+                    print(f"Tin nhắn từ {sender_id}: {text}")
 
-                    if text.lower() == "xin chào":
-                        send_message(
-                            sender_id,
-                            "Xin chào! Tôi là FF Bot 🤖"
-                        )
-                    else:
-                        send_message(
-                            sender_id,
-                            f"Bạn vừa gửi: {text}"
-                        )
+                    send_message(
+                        sender_id,
+                        f"Bạn vừa gửi: {text}"
+                    )
 
     return "EVENT_RECEIVED", 200
 
 
 def send_message(recipient_id, message_text):
-
-    url = (
-        f"https://graph.facebook.com/v23.0/me/messages"
-        f"?access_token={PAGE_ACCESS_TOKEN}"
-    )
+    url = f"https://graph.facebook.com/v23.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
 
     payload = {
         "recipient": {
@@ -76,10 +67,9 @@ def send_message(recipient_id, message_text):
 
     response = requests.post(url, json=payload)
 
-    print("SEND STATUS:", response.status_code)
-    print("SEND RESPONSE:", response.text)
+    print("SEND MESSAGE STATUS:", response.status_code)
+    print("SEND MESSAGE RESPONSE:", response.text)
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
